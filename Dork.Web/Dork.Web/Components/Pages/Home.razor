@@ -106,6 +106,12 @@
             return;
         }
 
+        if (result.ErrorCode == "NO_LIGHT_SOURCE")
+        {
+            AppendSystem("No phone. No flashlight. No hope. Maybe try picking up the obvious object next time.", isError: true);
+            return;
+        }
+
         if (result.ErrorCode == "UNPARSEABLE")
         {
             try

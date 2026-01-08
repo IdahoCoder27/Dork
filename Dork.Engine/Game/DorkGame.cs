@@ -13,6 +13,7 @@ public sealed class DorkGame
     private readonly World.World _world;
     private readonly GameState _state;
     private readonly GameOptions _options;
+    private const int PhoneItemId = 1;
 
     public DorkGame(World.World world, GameState state, GameOptions? options = null)
     {
@@ -26,10 +27,9 @@ public sealed class DorkGame
         if (string.IsNullOrWhiteSpace(input))
             return new GameOutput("Say something. Or don't. Either way, time passes.", IsError: true, ErrorCode: "EMPTY");
 
-        var command = input.Trim();
-
-        // basic normalization
-        var lower = command.ToLowerInvariant();
+        var lower = InputNormalizer.Normalize(input);
+        if (string.IsNullOrWhiteSpace(lower))
+            return new GameOutput("You entered nothing. Bold strategy.", true, "EMPTY");
 
         if (lower is "look" or "l")
             return Look();
@@ -46,6 +46,9 @@ public sealed class DorkGame
         if (lower.StartsWith("get "))
             return Take(lower["get ".Length..].Trim());
 
+        if (lower is "light" or "turn on light" or "turn on phone" or "use phone" or "use cell phone")
+            return TurnOnLight();
+
         // Direction-only commands: "out" == "go out"
         var currentRoom = _world.GetRoom(_state.CurrentRoomId);
         if (currentRoom.Exits.ContainsKey(lower))
@@ -56,6 +59,16 @@ public sealed class DorkGame
         return new GameOutput("Unrecognized command.", IsError: true, ErrorCode: "UNPARSEABLE");
 
     }
+
+    private GameOutput TurnOnLight()
+    {
+        if (!_state.Inventory.Contains(PhoneItemId))
+            return new GameOutput("You have nothing that produces light. Try possessing objects first.", true, "NO_LIGHT_SOURCE");
+
+        _state.SetFlag("light_on");
+        return new GameOutput("You turn on your phone light. Modern technology: still mostly disappointment, but bright.");
+    }
+
 
     private GameOutput Look()
     {
