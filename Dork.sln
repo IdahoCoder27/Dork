@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dork.Engine", "Dork.Engine\Dork.Engine.csproj", "{F8D7C965-1188-4748-93E7-EE1540BEF45E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dork.Web", "Dork.Web\Dork.Web\Dork.Web.csproj", "{691C3F46-475A-4D73-9E6C-26B2388F7B33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dork.Web.Client", "Dork.Web\Dork.Web.Client\Dork.Web.Client.csproj", "{0D48F396-22A2-417A-B5AF-BC3E8AFB94FE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F8D7C965-1188-4748-93E7-EE1540BEF45E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8D7C965-1188-4748-93E7-EE1540BEF45E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8D7C965-1188-4748-93E7-EE1540BEF45E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8D7C965-1188-4748-93E7-EE1540BEF45E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{691C3F46-475A-4D73-9E6C-26B2388F7B33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{691C3F46-475A-4D73-9E6C-26B2388F7B33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{691C3F46-475A-4D73-9E6C-26B2388F7B33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{691C3F46-475A-4D73-9E6C-26B2388F7B33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D48F396-22A2-417A-B5AF-BC3E8AFB94FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D48F396-22A2-417A-B5AF-BC3E8AFB94FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D48F396-22A2-417A-B5AF-BC3E8AFB94FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D48F396-22A2-417A-B5AF-BC3E8AFB94FE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
