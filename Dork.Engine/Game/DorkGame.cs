@@ -44,12 +44,29 @@ public sealed class DorkGame
         if (lower.StartsWith("get "))
             return Take(lower["get ".Length..].Trim());
 
+        // Direction-only commands: "out" == "go out"
+        var currentRoom = _world.GetRoom(_state.CurrentRoomId);
+        if (currentRoom.Exits.ContainsKey(lower))
+        {
+            return Go(lower);
+        }
+
         return new GameOutput("Unrecognized command.", IsError: true, ErrorCode: "UNPARSEABLE");
+
     }
 
     private GameOutput Look()
     {
         var room = _world.GetRoom(_state.CurrentRoomId);
+
+        if (room.IsDark && !_state.HasFlag("light_on"))
+        {
+            return new GameOutput(
+                "It is dark.",
+                IsError: true,
+                ErrorCode: "DARK"
+            );
+        }
 
         var lines = new List<string>
         {

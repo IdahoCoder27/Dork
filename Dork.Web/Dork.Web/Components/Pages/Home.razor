@@ -100,6 +100,12 @@
 
         var result = Game.Execute(cmd);
 
+        if (result.ErrorCode == "DARK")
+        {
+            await DarkRoomGag();
+            return;
+        }
+
         if (result.ErrorCode == "UNPARSEABLE")
         {
             try
@@ -118,6 +124,25 @@
 
         await ScrollToBottom();
     }
+
+    private async Task DarkRoomGag()
+    {
+        AppendSystem("It is dark. You are likely to be eaten by a");
+        await Task.Delay(350);
+        AppendSystem(".");
+        await Task.Delay(350);
+        AppendSystem(".");
+        await Task.Delay(350);
+        AppendSystem(".");
+
+        await Task.Delay(500);
+
+        AppendSystem(
+            "What do you think this is? A text-based game from the 1980's? Turn on your light, dumbass.",
+            isError: true
+        );
+    }
+
 
     private async Task FakeThinkAndReject(CancellationToken token)
     {

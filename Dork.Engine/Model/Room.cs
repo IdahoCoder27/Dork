@@ -10,7 +10,9 @@ namespace Dork.Engine.Model
     {
         public int Id { get; init; }
         public string Title { get; init; } = "";
-        public string Description { get; init; } = "";
+        public string Description { get; init; } = ""; 
+        public bool IsDark { get; init; }
+
 
         /// <summary>
         /// Direction -> destination room id (e.g. "north" => 2)

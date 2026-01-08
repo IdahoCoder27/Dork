@@ -31,7 +31,19 @@ public static class WorldFactory
                 Description = "Night. Two moons. A creek of pink water moving uphill. Reality is doing that thing where it pretends this is normal.",
                 Exits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
                 {
-                    ["in"] = 1
+                    ["in"] = 1,
+                    ["dark"] = 3
+                }
+            },
+            [3] = new Room
+            {
+                Id = 3,
+                Title = "Pitch Black Cave",
+                Description = "You can't see anything.",
+                IsDark = true,
+                Exits = new Dictionary<string, int>
+                {
+                    ["out"] = 2
                 }
             }
         };
