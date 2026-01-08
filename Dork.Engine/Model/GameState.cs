@@ -28,6 +28,10 @@ namespace Dork.Engine.Model
         /// </summary>
         public Dictionary<string, int> Counters { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        public int PhoneBattery { get; private set; } = 52; // small, tense
+        public bool PhonePluggedIn { get; private set; }
+        public bool PhoneLightOn => HasFlag("light_on");
+
         public GameState(int startingRoomId)
         {
             if (startingRoomId <= 0)
@@ -86,6 +90,22 @@ namespace Dork.Engine.Model
                 throw new ArgumentException("Key cannot be null/empty.", nameof(key));
 
             return key.Trim();
+        }
+
+        public void SetPhoneBattery(int value)
+        {
+            PhoneBattery = Math.Clamp(value, 0, 100);
+        }
+
+        public void DrainPhoneBattery(int amount)
+        {
+            if (amount <= 0) return;
+            SetPhoneBattery(PhoneBattery - amount);
+        }
+
+        public void RechargePhoneBattery(int amount)
+        {
+            SetPhoneBattery(PhoneBattery + amount);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace Dork.Engine.Model
         public string Title { get; init; } = "";
         public string Description { get; init; } = ""; 
         public bool IsDark { get; init; }
+        public bool HasPower { get; init; }
 
 
         /// <summary>

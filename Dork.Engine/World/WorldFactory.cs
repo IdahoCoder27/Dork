@@ -56,6 +56,13 @@ public static class WorldFactory
                 Name = "Cell phone",
                 Description = "An Android-powered cellular device. It has strong opinions about battery life.",
                 Aliases = new List<string> { "phone", "cell", "android" }
+            },
+            [2] = new Item
+            {
+                Id = 99,
+                Name = "Phone charger",
+                Description = "A charger. Useless without electricity. Or hope.",
+                Aliases = new List<string> {  "charger" }
             }
         };
 

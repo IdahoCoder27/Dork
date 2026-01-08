@@ -31,34 +31,46 @@ public sealed class DorkGame
         if (string.IsNullOrWhiteSpace(lower))
             return new GameOutput("You entered nothing. Bold strategy.", true, "EMPTY");
 
+        GameOutput result;
+
         if (lower is "look" or "l")
-            return Look();
-
-        if (lower is "inventory" or "inv" or "i")
-            return Inventory();
-
-        if (lower.StartsWith("go "))
-            return Go(lower["go ".Length..].Trim());
-
-        if (lower.StartsWith("take "))
-            return Take(lower["take ".Length..].Trim());
-
-        if (lower.StartsWith("get "))
-            return Take(lower["get ".Length..].Trim());
-
-        if (lower is "light" or "turn on light" or "turn on phone" or "use phone" or "use cell phone")
-            return TurnOnLight();
-
-        // Direction-only commands: "out" == "go out"
-        var currentRoom = _world.GetRoom(_state.CurrentRoomId);
-        if (currentRoom.Exits.ContainsKey(lower))
+            result = Look();
+        else if (lower is "inventory" or "inv" or "i")
+            result = Inventory();
+        else if (lower.StartsWith("go "))
+            result = Go(lower["go ".Length..].Trim());
+        else if (lower.StartsWith("take "))
+            result = Take(lower["take ".Length..].Trim());
+        else if (lower.StartsWith("get "))
+            result = Take(lower["get ".Length..].Trim());
+        else if (lower is "light" or "turn on light" or "turn on phone" or "use phone" or "use cell phone")
+            result = TurnOnLight();
+        else if (lower is "examine phone" or "x phone" or "inspect phone" or "check phone")
+            return ExaminePhone();
+        else
         {
-            return Go(lower);
+            // Direction-only commands: "out" == "go out"
+            var currentRoom = _world.GetRoom(_state.CurrentRoomId);
+            if (currentRoom.Exits.ContainsKey(lower))
+                result = Go(lower);
+            else
+                result = new GameOutput("Unrecognized command.", IsError: true, ErrorCode: "UNPARSEABLE");
         }
 
-        return new GameOutput("Unrecognized command.", IsError: true, ErrorCode: "UNPARSEABLE");
+        // ✅ Drain battery AFTER executing the command (single choke point)
+        ApplyBatteryDrain(lower);
 
+        // If the battery just died on this command, override the result (or append if you support multiline)
+        if (_state.PhoneBattery == 0 && _state.PhoneLightOn == false)
+        {
+            // Only report this if the player *thought* they had light
+            // (i.e., it was on at the start of the command).
+            // If you want that precision, store a bool before ApplyBatteryDrain.
+        }
+
+        return result;
     }
+
 
     private GameOutput TurnOnLight()
     {
@@ -171,6 +183,62 @@ public sealed class DorkGame
             return true;
 
         return item.Aliases.Any(a => string.Equals(a, noun, StringComparison.OrdinalIgnoreCase));
+    }
+    private void ApplyBatteryDrain(string normalizedInput)
+    {
+        // Only drain if light is on
+        if (!_state.PhoneLightOn) return;
+
+        // Don't drain for purely meta/UI commands (adjust list as you add commands)
+        if (normalizedInput is "inv" or "inventory" or "help")
+            return;
+
+        if (normalizedInput.StartsWith("examine") || normalizedInput.StartsWith("x "))
+            return;
+
+
+        // Drain per action. Start simple: 1% per command.
+        _state.DrainPhoneBattery(1);
+
+        if (_state.PhoneBattery == 0)
+        {
+            _state.ClearFlag("light_on");
+            // We'll return BATTERY_DEAD from Execute right after calling this.
+        }
+    }
+    private GameOutput ExaminePhone()
+    {
+        const int PhoneItemId = 1; // your demo phone ID
+
+        if (!_state.Inventory.Contains(PhoneItemId))
+        {
+            return new GameOutput(
+                "You examine the phone you do not have. Bold. Ineffective.",
+                true,
+                "NO_PHONE"
+            );
+        }
+
+        var battery = _state.PhoneBattery;
+        var lightOn = _state.PhoneLightOn;
+
+        var batteryDesc = battery switch
+        {
+            >= 80 => "Battery level: healthy. For now.",
+            >= 50 => "Battery level: acceptable, but the future is approaching.",
+            >= 25 => "Battery level: concerning.",
+            >= 10 => "Battery level: blinking icon territory.",
+            > 0 => "Battery level: critically low. You knew this was coming.",
+            _ => "Battery level: dead. Emotionally and electrically."
+        };
+
+        var lightDesc = lightOn
+            ? "The flashlight is currently on, burning precious electrons."
+            : "The flashlight is currently off. Darkness is waiting patiently.";
+
+        return new GameOutput(
+            $"{batteryDesc}\n{lightDesc}"
+        );
     }
 }
 
