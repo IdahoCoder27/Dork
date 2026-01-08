@@ -8,13 +8,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton(sp => WorldFactory.CreateDemoWorld());
+builder.Services.AddScoped(sp => new GameState(startingRoomId: 1));
+builder.Services.AddScoped<DorkGame>(sp =>
 {
-    var world = WorldFactory.CreateDemoWorld();
-    var state = new GameState(startingRoomId: 1);
-    var options = new GameOptions {  ShowExits = true }; // Set false when ready to meaner
+    var world = sp.GetRequiredService<World>();
+    var state = sp.GetRequiredService<GameState>();
+    var options = new GameOptions { ShowExits = true }; // Set false when ready to meaner
     return new DorkGame(world, state);
 });
+
 
 var app = builder.Build();
 

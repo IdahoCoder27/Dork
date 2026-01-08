@@ -19,6 +19,11 @@ namespace Dork.Engine.Model
         public HashSet<int> Inventory { get; } = new();
 
         /// <summary>
+        /// The players choosen class which will affect humor in the game
+        /// </summary>
+        public PlayerClass Class { get; set; } = PlayerClass.None;
+
+        /// <summary>
         /// Global boolean state flags (e.g., "door_open", "saw_two_moons").
         /// </summary>
         public HashSet<string> Flags { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -28,8 +33,15 @@ namespace Dork.Engine.Model
         /// </summary>
         public Dictionary<string, int> Counters { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        private const string ShownClassPromptFlag = "shown_class_prompt";
+        public bool HasShownClassPrompt => HasFlag(ShownClassPromptFlag);
+        public void MarkShownClassPrompt() => SetFlag(ShownClassPromptFlag);
+
         public int PhoneBattery { get; private set; } = 52; // small, tense
         public bool PhonePluggedIn { get; private set; }
+
+        public void TurnPhoneLightOn() => SetFlag("light_on");
+        public void TurnPhoneLightOff() => ClearFlag("light_on");
         public bool PhoneLightOn => HasFlag("light_on");
 
         public GameState(int startingRoomId)
