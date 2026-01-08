@@ -50,21 +50,21 @@ public static class WorldFactory
 
         var items = new Dictionary<int, Item>
         {
-            [1] = new Item
-            {
-                Id = 1,
-                Name = "Cell phone",
-                Description = "An Android-powered cellular device. It has strong opinions about battery life.",
-                Aliases = new List<string> { "phone", "cell", "android" }
-            },
-            [2] = new Item
-            {
-                Id = 99,
-                Name = "Phone charger",
-                Description = "A charger. Useless without electricity. Or hope.",
-                Aliases = new List<string> {  "charger" }
-            }
+            [1] = new Item(
+                id: 1,
+                name: "Cell phone",
+                description: "An Android-powered cellular device. It has strong opinions about battery life.",
+                aliases: new[] { "phone", "cell", "android" }
+            ),
+
+            [99] = new Item(
+                id: 99,
+                name: "Phone charger",
+                description: "A charger. Useless without electricity. Or hope.",
+                aliases: new[] { "charger" }
+            )
         };
+
 
         return new World(rooms, items);
     }

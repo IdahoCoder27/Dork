@@ -14,6 +14,7 @@ public sealed class DorkGame
     private readonly GameState _state;
     private readonly GameOptions _options;
     private const int PhoneItemId = 1;
+    private readonly Random _rng = new();
 
     public DorkGame(World.World world, GameState state, GameOptions? options = null)
     {
@@ -47,6 +48,11 @@ public sealed class DorkGame
             result = TurnOnLight();
         else if (lower is "examine phone" or "x phone" or "inspect phone" or "check phone")
             return ExaminePhone();
+        else if (lower.StartsWith("drop "))
+            return Drop(lower["drop ".Length..].Trim());
+
+        else if (lower.StartsWith("leave "))
+            return Drop(lower["leave ".Length..].Trim());
         else
         {
             // Direction-only commands: "out" == "go out"
@@ -240,5 +246,49 @@ public sealed class DorkGame
             $"{batteryDesc}\n{lightDesc}"
         );
     }
+    private GameOutput Drop(string noun)
+    {
+        if (string.IsNullOrWhiteSpace(noun))
+            return new GameOutput("Drop what, exactly?", true, "MISSING_NOUN");
+
+        var itemId = ResolveInventoryItem(noun);   // int? (nullable)
+
+        if (itemId is null)
+            return new GameOutput("You are not holding that.", true, "NOT_IN_INVENTORY");
+
+        // Remove from inventory
+        _state.Inventory.Remove(itemId.Value);
+
+        // Add to current room
+        var room = _world.GetRoom(_state.CurrentRoomId);
+        room.ItemIds.Add(itemId.Value);
+
+        var name = _world.GetItem(itemId.Value).Name;
+
+        var isPhone = itemId.Value == PhoneItemId;
+        var wasLit = _state.PhoneLightOn;
+
+        var baseLine = Snark.Dropped(name, _rng);
+        if (isPhone && wasLit)
+            baseLine += "\nThe phone continues shining on the ground, like it’s trying to be the adult here.";
+
+        return new GameOutput(baseLine);
+    }
+
+
+    private int? ResolveInventoryItem(string noun)
+    {
+        var inv = _state.Inventory;
+
+        foreach (var itemId in inv)
+        {
+            var item = _world.GetItem(itemId);
+            if (item.Aliases.Contains(noun))
+                return itemId;
+        }
+
+        return null;
+    }
+
 }
 
