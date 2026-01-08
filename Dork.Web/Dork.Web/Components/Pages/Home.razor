@@ -42,6 +42,11 @@
 
     private readonly List<Line> _history = new();
 
+    private readonly List<string> _cmdHistory = new();
+    private int _historyIndex = -1; // -1 means "not browsing"
+    private CancellationTokenSource? _snarkCts;
+
+
     protected override void OnInitialized()
     {
         // Initial "look"
@@ -51,13 +56,44 @@
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
+        {
             await Submit();
+            return;
+        }
+
+        if (e.Key == "ArrowUp")
+        {
+            if (_cmdHistory.Count == 0) return;
+
+            if (_historyIndex == -1) _historyIndex = _cmdHistory.Count - 1;
+            else _historyIndex = Math.Max(0, _historyIndex - 1);
+
+            _input = _cmdHistory[_historyIndex];
+            return;
+        }
+
+        if (e.Key == "ArrowDown")
+        {
+            if (_cmdHistory.Count == 0) return;
+
+            if (_historyIndex == -1) return;
+
+            _historyIndex = Math.Min(_cmdHistory.Count, _historyIndex + 1);
+            _input = _historyIndex >= _cmdHistory.Count ? "" : _cmdHistory[_historyIndex];
+            return;
+        }
     }
 
     private async Task Submit()
     {
+        _snarkCts?.Cancel();
+        _snarkCts = new CancellationTokenSource();
+
         var cmd = _input?.Trim() ?? "";
         if (cmd.Length == 0) return;
+
+        _cmdHistory.Add(cmd);
+        _historyIndex = -1;
 
         AppendUser(cmd);
         _input = "";
@@ -66,8 +102,14 @@
 
         if (result.ErrorCode == "UNPARSEABLE")
         {
-            // Your fake-thinking gag. Minimal version first.
-            await FakeThinkAndReject();
+            try
+            {
+                await FakeThinkAndReject(_snarkCts.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                // user did something else; good for them
+            }
         }
         else
         {
@@ -77,16 +119,16 @@
         await ScrollToBottom();
     }
 
-    private async Task FakeThinkAndReject()
+    private async Task FakeThinkAndReject(CancellationToken token)
     {
         AppendSystem("Considering your request...");
-        await Task.Delay(350);
+        await Task.Delay(350, token);
 
         AppendSystem("Contemplating actions...");
-        await Task.Delay(350);
+        await Task.Delay(350, token);
 
         AppendSystem("Evaluating response from system...");
-        await Task.Delay(350);
+        await Task.Delay(350, token);
 
         AppendSystem("Yeah, just no.", isError: true);
     }
