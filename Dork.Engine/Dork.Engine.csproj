@@ -7,9 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Model\" />
     <Folder Include="Commands\" />
-    <Folder Include="World\" />
     <Folder Include="Parser\" />
   </ItemGroup>
 
