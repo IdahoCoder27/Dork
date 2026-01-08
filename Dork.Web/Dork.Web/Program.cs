@@ -12,6 +12,7 @@ builder.Services.AddSingleton(sp =>
 {
     var world = WorldFactory.CreateDemoWorld();
     var state = new GameState(startingRoomId: 1);
+    var options = new GameOptions {  ShowExits = true }; // Set false when ready to meaner
     return new DorkGame(world, state);
 });
 

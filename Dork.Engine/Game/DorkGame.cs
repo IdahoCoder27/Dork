@@ -12,11 +12,13 @@ public sealed class DorkGame
 {
     private readonly World.World _world;
     private readonly GameState _state;
+    private readonly GameOptions _options;
 
-    public DorkGame(World.World world, GameState state)
+    public DorkGame(World.World world, GameState state, GameOptions? options = null)
     {
         _world = world ?? throw new ArgumentNullException(nameof(world));
         _state = state ?? throw new ArgumentNullException(nameof(state));
+        _options = options ?? new GameOptions();
     }
 
     public GameOutput Execute(string? input)
@@ -85,7 +87,7 @@ public sealed class DorkGame
             }
         }
 
-        if (room.Exits.Count > 0)
+        if (_options.ShowExits && room.Exits.Count > 0)
         {
             lines.Add("");
             lines.Add("Exits:");
