@@ -1,32 +1,33 @@
 using Dork.Web.Components;
+using Dork.Engine.Game;
+using Dork.Engine.Model;
+using Dork.Engine.World;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton(sp =>
+{
+    var world = WorldFactory.CreateDemoWorld();
+    var state = new GameState(startingRoomId: 1);
+    return new DorkGame(world, state);
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(Dork.Web.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.Run();

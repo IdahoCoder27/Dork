@@ -1,7 +1,109 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using Dork.Engine.Game
+@inject DorkGame Game
+@inject IJSRuntime JS
 
-<PageTitle>Home</PageTitle>
+<div class="dork-shell">
+    <div class="dork-header">
+        <div class="dork-title">DORK</div>
+        <div class="dork-subtitle">A text adventure that judges your input.</div>
+    </div>
 
-<h1>Hello, world!</h1>
+    <div class="dork-output" @ref="_outputDiv">
+        @foreach (var line in _history)
+        {
+            <div class="@line.Css">
+                @((MarkupString)line.Html)
+            </div>
+        }
+    </div>
 
-Welcome to your new app.
+    <div class="dork-inputrow">
+        <span class="dork-prompt">&gt;</span>
+        <input class="dork-input"
+               @bind="_input"
+               @bind:event="oninput"
+               @onkeydown="OnKeyDown"
+               placeholder="Type a command, make a mistake."
+               autocomplete="off" />
+        <button class="dork-btn" @onclick="Submit">Do it</button>
+    </div>
+
+    <div class="dork-hints">
+        Try: <code>look</code>, <code>go out</code>, <code>take phone</code>, <code>inv</code>
+    </div>
+</div>
+
+@code
+{
+    private string _input = "";
+    private ElementReference _outputDiv;
+
+    private readonly List<Line> _history = new();
+
+    protected override void OnInitialized()
+    {
+        // Initial "look"
+        AppendSystem(Game.Execute("look").Text);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Submit();
+    }
+
+    private async Task Submit()
+    {
+        var cmd = _input?.Trim() ?? "";
+        if (cmd.Length == 0) return;
+
+        AppendUser(cmd);
+        _input = "";
+
+        var result = Game.Execute(cmd);
+
+        if (result.ErrorCode == "UNPARSEABLE")
+        {
+            // Your fake-thinking gag. Minimal version first.
+            await FakeThinkAndReject();
+        }
+        else
+        {
+            AppendSystem(result.Text, isError: result.IsError);
+        }
+
+        await ScrollToBottom();
+    }
+
+    private async Task FakeThinkAndReject()
+    {
+        AppendSystem("Considering your request...");
+        await Task.Delay(350);
+
+        AppendSystem("Contemplating actions...");
+        await Task.Delay(350);
+
+        AppendSystem("Evaluating response from system...");
+        await Task.Delay(350);
+
+        AppendSystem("Yeah, just no.", isError: true);
+    }
+
+    private void AppendUser(string text)
+        => _history.Add(new Line(HtmlEncode(text), "dork-line dork-user"));
+
+    private void AppendSystem(string text, bool isError = false)
+        => _history.Add(new Line(HtmlEncode(text).Replace("\n", "<br />"), isError ? "dork-line dork-error" : "dork-line dork-system"));
+
+    private async Task ScrollToBottom()
+    {
+        await JS.InvokeVoidAsync("dorkScrollToBottom", _outputDiv);
+    }
+
+    private static string HtmlEncode(string s)
+        => System.Net.WebUtility.HtmlEncode(s);
+
+    private sealed record Line(string Html, string Css);
+}
