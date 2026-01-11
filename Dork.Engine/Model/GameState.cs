@@ -44,6 +44,16 @@ namespace Dork.Engine.Model
         public void TurnPhoneLightOff() => ClearFlag("light_on");
         public bool PhoneLightOn => HasFlag("light_on");
 
+        /// <summary>
+        /// This Falg is to determine intent
+        /// </summary>
+        public HashSet<string> KnowledgeFlags { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // Optional but inevitable
+        public HashSet<string> EventFlags { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
         public GameState(int startingRoomId)
         {
             if (startingRoomId <= 0)

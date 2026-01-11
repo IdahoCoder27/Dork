@@ -37,6 +37,7 @@
 
 @code
 {
+    private bool _scrollPending;
     private string _input = "";
     private ElementReference _outputDiv;
 
@@ -127,27 +128,24 @@
         {
             AppendSystem(result.Text, isError: result.IsError);
         }
-
-        await ScrollToBottom();
     }
 
     private async Task DarkRoomGag()
     {
-        AppendSystem("It is dark. You are likely to be eaten by a");
+        await AppendSystemAsync("It is dark. You are likely to be eaten by a");
         await Task.Delay(350);
-        AppendSystem(".");
+        await AppendSystemAsync(".");
         await Task.Delay(350);
-        AppendSystem(".");
+        await AppendSystemAsync(".");
         await Task.Delay(350);
-        AppendSystem(".");
-
+        await AppendSystemAsync(".");
         await Task.Delay(500);
 
-        AppendSystem(
+        await AppendSystemAsync(
             "What do you think this is? A text-based game from the 1980's? Turn on your light, dumbass.",
-            isError: true
-        );
+            isError: true);
     }
+
 
 
     private async Task FakeThinkAndReject(CancellationToken token)
@@ -165,18 +163,34 @@
     }
 
     private void AppendUser(string text)
-        => _history.Add(new Line(HtmlEncode(text), "dork-line dork-user"));
+    {
+        _history.Add(new Line(HtmlEncode(text), "dork-line dork-user"));
+        _scrollPending = true;
+    }
 
     private void AppendSystem(string text, bool isError = false)
-        => _history.Add(new Line(HtmlEncode(text).Replace("\n", "<br />"), isError ? "dork-line dork-error" : "dork-line dork-system"));
-
-    private async Task ScrollToBottom()
     {
-        await JS.InvokeVoidAsync("dorkScrollToBottom", _outputDiv);
+        _history.Add(new Line(HtmlEncode(text).Replace("\n", "<br />"), isError ? "dork-line dork-error" : "dork-line dork-system"));
+        _scrollPending = true;
     }
 
     private static string HtmlEncode(string s)
         => System.Net.WebUtility.HtmlEncode(s);
 
     private sealed record Line(string Html, string Css);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scrollPending)
+        {
+            _scrollPending = false;
+            await JS.InvokeVoidAsync("dorkScrollToBottom", _outputDiv);
+        }
+    }
+
+    private async Task AppendSystemAsync(string text, bool isError = false)
+    {
+        AppendSystem(text, isError);
+        await InvokeAsync(StateHasChanged);
+    }
 }

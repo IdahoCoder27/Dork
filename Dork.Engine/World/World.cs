@@ -23,12 +23,14 @@ public sealed class World
         foreach (var i in Items.Values) i.Validate();
 
         // Validate exits point to real rooms
-        foreach (var r in Rooms.Values)
+        foreach (var room in Rooms.Values)
         {
-            foreach (var exit in r.Exits)
+            foreach (var (dir, exit) in room.Exits)
             {
-                if (!Rooms.ContainsKey(exit.Value))
-                    throw new InvalidOperationException($"Room {r.Id} has exit '{exit.Key}' to missing room {exit.Value}.");
+                if (!Rooms.ContainsKey(exit.ToRoomId))
+                    throw new InvalidOperationException(
+                        $"Room {room.Id} has exit '{dir}' to missing room {exit.ToRoomId}."
+                    );
             }
         }
 

@@ -14,11 +14,16 @@ namespace Dork.Engine.Model
         public bool IsDark { get; init; }
         public bool HasPower { get; init; }
 
-
         /// <summary>
         /// Direction -> destination room id (e.g. "north" => 2)
         /// </summary>
-        public Dictionary<string, int> Exits { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, Exit> Exits { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// If there are rules to the room, they lie here
+        /// </summary>
+        public string? GateRuleId { get; init; }
+
 
         /// <summary>
         /// Item IDs currently in this room.
@@ -27,17 +32,23 @@ namespace Dork.Engine.Model
 
         public void Validate()
         {
-            if (Id <= 0) throw new InvalidOperationException("Room.Id must be positive.");
-            if (string.IsNullOrWhiteSpace(Title)) throw new InvalidOperationException($"Room {Id}: Title is required.");
-            if (string.IsNullOrWhiteSpace(Description)) throw new InvalidOperationException($"Room {Id}: Description is required.");
+            if (Id <= 0)
+                throw new InvalidOperationException("Room.Id must be positive.");
 
-            foreach (var kvp in Exits)
+            foreach (var (dir, exit) in Exits)
             {
-                if (string.IsNullOrWhiteSpace(kvp.Key))
+                if (string.IsNullOrWhiteSpace(dir))
                     throw new InvalidOperationException($"Room {Id}: Exit direction cannot be empty.");
-                if (kvp.Value <= 0)
-                    throw new InvalidOperationException($"Room {Id}: Exit '{kvp.Key}' must point to a positive room id.");
+
+                if (exit is null)
+                    throw new InvalidOperationException($"Room {Id}: Exit '{dir}' is null.");
+
+                if (exit.ToRoomId <= 0)
+                    throw new InvalidOperationException(
+                        $"Room {Id}: Exit '{dir}' must point to a positive room id."
+                    );
             }
         }
+
     }
 }

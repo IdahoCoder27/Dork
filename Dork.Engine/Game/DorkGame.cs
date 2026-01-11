@@ -13,7 +13,15 @@ public sealed class DorkGame
     private readonly GameOptions _options;
     private readonly Random _rng = new();
 
+    private enum SpeechVolume { Normal, Yell }
+    private static readonly HashSet<string> MessageNouns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "message", "messages", "unread", "unread message", "unread messages", "inbox"
+    };
+
     private const int PhoneItemId = 1;
+    private const int PanelItemId = 10;
+    private const int PlaqueItemId = 11;
 
     public DorkGame(World.World world, GameState state, GameOptions? options = null)
     {
@@ -29,6 +37,9 @@ public sealed class DorkGame
             return new GameOutput("Say something. Or don't. Either way, time passes.", true, "EMPTY");
 
         var lower = InputNormalizer.Normalize(input);
+        // Light intent normalization: strip "player:" and leading "i " so casual inputs still work.
+        // This is NOT an LLM. This is just removing human fluff.
+        var cmd = NormalizeIntent(lower);
 
         // First time: show the big prompt once.
         if (_state.Class == PlayerClass.None)
@@ -38,20 +49,20 @@ public sealed class DorkGame
                 _state.MarkShownClassPrompt();
                 return ShowClassPrompt();
             }
-            return HandleClassGate(lower);
+            return HandleClassGate(cmd);
         }
 
-        if (string.IsNullOrWhiteSpace(lower))
+        if (string.IsNullOrWhiteSpace(cmd))
             return new GameOutput("You entered nothing. Bold strategy.", true, "EMPTY");
 
         // Remember whether light was on BEFORE we process, so we can message battery death correctly
         var lightWasOnAtStart = _state.PhoneLightOn;
 
         // Execute command
-        var result = ExecuteCommand(lower);
+        var result = ExecuteCommand(cmd);
 
         // Drain battery AFTER executing (single choke point)
-        ApplyBatteryDrain(lower);
+        ApplyBatteryDrain(cmd);
 
         // If the flashlight died as a result of this command, add a little obituary
         if (lightWasOnAtStart && !_state.PhoneLightOn && _state.PhoneBattery == 0)
@@ -167,6 +178,32 @@ public sealed class DorkGame
         if (lower.StartsWith("x "))
             return Examine(lower["x ".Length..].Trim());
 
+        if (lower.StartsWith("press "))
+            return Press(lower["press ".Length..].Trim());
+
+        if (lower.StartsWith("push "))
+            return Press(lower["push ".Length..].Trim());
+
+        // Legacy habits die hard.
+        if (lower.StartsWith("enter ") || lower.StartsWith("type "))
+            return new GameOutput("There is no keypad. The panel wants voice authorization. Try: say <codeword>.", true, "VOICE_REQUIRED");
+
+        // Reading
+        if (lower.StartsWith("read "))
+            return Read(lower["read ".Length..].Trim());
+        if (lower is "read" or "r")
+            return new GameOutput("Read what, exactly?", true, "MISSING_NOUN");
+
+        // Speech / voice input
+        if (lower.StartsWith("say "))
+            return Say(lower["say ".Length..].Trim(), volume: SpeechVolume.Normal);
+        if (lower.StartsWith("speak "))
+            return Say(lower["speak ".Length..].Trim(), volume: SpeechVolume.Normal);
+        if (lower.StartsWith("yell "))
+            return Say(lower["yell ".Length..].Trim(), volume: SpeechVolume.Yell);
+        if (lower.StartsWith("shout "))
+            return Say(lower["shout ".Length..].Trim(), volume: SpeechVolume.Yell);
+
         // Direction-only commands: "out" == "go out"
         var currentRoom = _world.GetRoom(_state.CurrentRoomId);
         if (currentRoom.Exits.ContainsKey(lower))
@@ -186,6 +223,191 @@ public sealed class DorkGame
 
         _state.TurnPhoneLightOn();
         return new GameOutput("You turn on your phone light. Modern technology: still mostly disappointment, but bright.");
+    }
+
+    private GameOutput Read(string noun)
+    {
+        noun = InputNormalizer.Normalize(noun);
+
+        if (string.IsNullOrWhiteSpace(noun))
+            return new GameOutput("Read what, exactly?", true, "MISSING_NOUN");
+
+        // If they say "read message", treat it as content-intent, not object-aliasing.
+        if (MessageNouns.Contains(noun))
+            return ReadMessage(); // no noun needed
+
+        // Otherwise: read an explicit thing.
+        var resolved = ResolveItem(noun);
+        if (resolved is null)
+            return new GameOutput($"You can't find '{noun}' to read. Try reality.", true, "NOT_FOUND");
+
+        var item = _world.GetItem(resolved.ItemId);
+
+        // Generic readable items (manuals, plaques, etc.)
+        if (item.Readable is not null)
+        {
+            _state.KnowledgeFlags.Add($"ReadItem:{item.Id}");
+            var title = string.IsNullOrWhiteSpace(item.Readable.Title) ? item.Name : item.Readable.Title;
+            return new GameOutput($"{title}\n\n{item.Readable.Text}");
+        }
+
+        // If flagged readable but no content, that's a content-authoring bug.
+        if (item.Has(ItemCapability.Readable))
+            return new GameOutput("It is technically readable. Unfortunately, it contains nothing.", true, "EMPTY_READABLE");
+
+        return new GameOutput($"You can't read the {item.Name}.", true, "NOT_READABLE");
+    }
+
+    private GameOutput ReadMessage()
+    {
+        // Prefer: inventory message devices first (phone later becomes terminal, pager, etc.)
+        var invDeviceId = _state.Inventory
+            .Select(id => _world.GetItem(id))
+            .FirstOrDefault(i => i.Phone is not null) // message-capable device
+            ?.Id;
+
+        if (invDeviceId is not null)
+            return ReadMessagesFromDevice(invDeviceId.Value);
+
+        // Optional: allow room devices if you want (terminals on desks, wall kiosks).
+        // If you *don't* want this, just delete this block and it's inventory-only.
+        var room = _world.GetRoom(_state.CurrentRoomId);
+        var roomDeviceId = room.ItemIds
+            .Select(id => _world.GetItem(id))
+            .FirstOrDefault(i => i.Phone is not null)
+            ?.Id;
+
+        if (roomDeviceId is not null)
+            return ReadMessagesFromDevice(roomDeviceId.Value, mustBeHeld: true);
+
+        return new GameOutput("No readable messages available. Peace at last.", true, "NO_MESSAGES");
+    }
+
+    private GameOutput ReadMessagesFromDevice(int itemId, bool mustBeHeld = false)
+    {
+        var item = _world.GetItem(itemId);
+
+        if (item.Phone is null)
+            return new GameOutput("You stare at it, hoping for messages. It offers you disappointment.", true, "NO_MESSAGES");
+
+        // If this is a “personal device” like a phone, require holding it.
+        // You can generalize later via tags or a property like item.RequiresHeldToRead.
+        if (mustBeHeld || itemId == PhoneItemId)
+        {
+            if (!_state.Inventory.Contains(item.Id))
+            {
+                return new GameOutput(
+                    $"You can't read the {item.Name} from the floor. Hands exist. Use them.",
+                    true,
+                    "ITEM_NOT_HELD"
+                );
+            }
+        }
+
+        var msg = item.Phone.ReadNext();
+        if (msg is null)
+            return new GameOutput("No unread messages.");
+
+        var codeword = TryExtractCodeword(msg.Body);
+        if (!string.IsNullOrWhiteSpace(codeword))
+        {
+            _state.KnowledgeFlags.Add("KnowsSSBCodeword");
+            _state.KnowledgeFlags.Add($"SSBCodeword:{codeword}");
+        }
+
+        var header = $"From: {msg.From}\nSubject: {msg.Subject}";
+        return new GameOutput($"{header}\n\n{msg.Body}");
+    }
+
+    private GameOutput Say(string text, SpeechVolume volume)
+    {
+        text = InputNormalizer.Normalize(text);
+        if (string.IsNullOrWhiteSpace(text))
+            return new GameOutput("Say what, exactly?", true, "MISSING_SPEECH");
+
+        var room = _world.GetRoom(_state.CurrentRoomId);
+
+        // Elevator voice auth: this is the only place where 'say' matters right now.
+        if (room.Id == 1)
+        {
+            // Require the panel to exist in the room, otherwise people can voice-authenticate the concept of elevators.
+            if (!room.ItemIds.Contains(PanelItemId))
+                return new GameOutput("You speak into the air. The air does not grant you clearance.", true, "NO_MIC");
+
+            // Hard-coded codeword for now. Later you can compare against the extracted one stored in KnowledgeFlags.
+            // Keep it simple until you have Wall-of-Shame scoring.
+            if (text == "lasagna")
+            {
+                _state.SetFlag("elevator_ssb_unlocked");
+                return new GameOutput(
+                    "You say, \"lasagna.\"\n\n" +
+                    "There is a pause.\n" +
+                    "The panel beeps. Not approvingly. Just… accurately.\n" +
+                    "S.S.B. lights up.\n\n"
+                );
+            }
+
+            // Wrong word: punish confidence if they clearly should know better.
+            var knows = PlayerKnows("KnowsSSBCodeword");
+            var extra = knows
+                ? "\n\nSomewhere, a system records your voice and your poor reading comprehension."
+                : "\n\nNothing happens. The panel waits.";
+
+            if (volume == SpeechVolume.Yell)
+                extra += "\nAlso, you yelled at a machine. That probably looked great.";
+
+            return new GameOutput($"You say, \"{text}.\"{extra}", true, "BAD_VOICE_CODE");
+        }
+
+        // Everywhere else: speech is mostly roleplay. For now.
+        if (volume == SpeechVolume.Yell)
+            return new GameOutput($"You yell \"{text}\". The environment absorbs it without comment.");
+
+        return new GameOutput($"You say \"{text}\". Nobody answers.");
+    }
+
+    private bool PlayerKnows(string flag)
+        => _state.KnowledgeFlags.Contains(flag);
+
+    private static string NormalizeIntent(string normalized)
+    {
+        // Already normalized input comes in here.
+        var s = normalized.Trim();
+
+        if (s.StartsWith("player:"))
+            s = s["player:".Length..].Trim();
+
+        // Common human fluff: "I ..." / "I want to ..." / "I would like to ..."
+        if (s.StartsWith("i want to "))
+            s = s["i want to ".Length..].Trim();
+        else if (s.StartsWith("i would like to "))
+            s = s["i would like to ".Length..].Trim();
+        else if (s.StartsWith("i "))
+            s = s["i ".Length..].Trim();
+
+        return s;
+    }
+
+    private static string? TryExtractCodeword(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+
+        // Super-literal extraction: look for "code is X".
+        // Later you can make this robust. Right now, this is enough to power the elevator.
+        var lower = body.ToLowerInvariant();
+        var needle = "code is ";
+        var idx = lower.IndexOf(needle, StringComparison.Ordinal);
+        if (idx < 0) return null;
+
+        var start = idx + needle.Length;
+        var tail = body[start..].Trim();
+        if (tail.Length == 0) return null;
+
+        // Take the first token-ish word, strip punctuation.
+        var token = tail.Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (token is null) return null;
+        token = token.Trim().Trim('"', '\'', '.', ',', ';', ':', '!', '?');
+        return string.IsNullOrWhiteSpace(token) ? null : token.ToLowerInvariant();
     }
 
     private GameOutput Look()
@@ -239,14 +461,20 @@ public sealed class DorkGame
         if (string.IsNullOrWhiteSpace(direction))
             return new GameOutput("Go where?", true, "MISSING_DIRECTION");
 
+        direction = InputNormalizer.Normalize(direction);
+
         var room = _world.GetRoom(_state.CurrentRoomId);
 
-        if (!room.Exits.TryGetValue(direction, out var destRoomId))
+        if (!room.Exits.TryGetValue(direction, out var exit))
             return new GameOutput($"You can't go '{direction}'.", true, "NO_EXIT");
 
-        _state.MoveTo(destRoomId);
+        if (!exit.IsAllowed(_state))
+            return new GameOutput(exit.LockedMessage ?? "ACCESS DENIED.", true, "EXIT_LOCKED");
+
+        _state.MoveTo(exit.ToRoomId);
         return Look();
     }
+
 
     private GameOutput Take(string noun)
     {
@@ -261,6 +489,17 @@ public sealed class DorkGame
 
         if (match is null)
             return new GameOutput($"There is no '{noun}' here.", true, "NO_SUCH_ITEM");
+
+        if (!match.IsPortable)
+        {
+            return new GameOutput(
+                $"You try to take the {match.Name}.\n" +
+                "It does not budge.\n\n" +
+                "This is architecture, not loot.",
+                true,
+                "NOT_PORTABLE"
+            );
+        }
 
         room.ItemIds.Remove(match.Id);
         _state.AddItem(match.Id);
@@ -306,6 +545,8 @@ public sealed class DorkGame
 
         if (resolved.ItemId == PhoneItemId)
             return ExaminePhone(resolved, item);
+        else if (resolved.ItemId == PlaqueItemId)
+            return ExaminePlaque(resolved, item);
 
         var locationLine = resolved.Location == ItemLocation.Inventory
             ? "It is in your possession. For now."
@@ -317,6 +558,17 @@ public sealed class DorkGame
     private GameOutput ExaminePhone(ResolvedItem resolved, Item item)
     {
         var lightState = _state.PhoneLightOn ? "on" : "off";
+
+        // If this is a real phone (PhoneSpec present), seeing the phone reveals that messages exist.
+        var unreadLine = "";
+        if (item.Phone is not null)
+        {
+            // Checking the phone marks unseen messages as seen, but not read.
+            item.Phone.MarkAllSeen();
+            var unread = item.Phone.UnreadCount;
+            if (unread > 0)
+                unreadLine = $"\nYou have {unread} unread message{(unread == 1 ? "" : "s")}.";
+        }
 
         string batteryLine = resolved.Location == ItemLocation.Inventory
             ? $"Battery: {_state.PhoneBattery}% (optimistic)."
@@ -338,8 +590,108 @@ public sealed class DorkGame
             : "";
 
         return new GameOutput(
-            $"{item.Name}\n{item.Description}\n\n{whereLine}\n{batteryLine}\nFlashlight: {lightState}.{extra}"
+            $"{item.Name}\n{item.Description}{unreadLine}\n\n{whereLine}\n{batteryLine}\nFlashlight: {lightState}.{extra}"
         );
+    }
+
+    private GameOutput ExaminePlaque(ResolvedItem resolved, Item item)
+    {
+        return new GameOutput($"{item.Name}\n{item.Description}");
+    }
+
+    private GameOutput Press(string noun)
+    {
+        if (string.IsNullOrWhiteSpace(noun))
+            return new GameOutput("Press what, exactly?", true, "MISSING_NOUN");
+
+        noun = InputNormalizer.Normalize(noun);
+
+        // Special case: elevator sub-buttons like "ssb" / "field"
+        // These are NOT items, they are controls on the panel.
+        if (noun is "ssb" or "subbasement" or "sub basement" or "sb" or "2" or "field" or "f" or "1")
+            return PressElevatorButton(noun);
+
+        // Otherwise, press an actual item in scope
+        var target = FindItemInScope(noun);
+        if (target is null)
+            return new GameOutput($"You press '{noun}'. Nothing happens.\nBecause nothing is there.", true, "NO_TARGET");
+
+        return PressItem(target);
+    }
+
+    private Item? FindItemInScope(string token)
+    {
+        token = InputNormalizer.Normalize(token);
+
+        var room = _world.GetRoom(_state.CurrentRoomId);
+
+        // Room items first
+        foreach (var id in room.ItemIds)
+        {
+            var it = _world.GetItem(id);
+            if (it.Aliases.Contains(token)) return it;
+        }
+
+        // Inventory items next (optional, but useful)
+        foreach (var id in _state.Inventory)
+        {
+            var it = _world.GetItem(id);
+            if (it.Aliases.Contains(token)) return it;
+        }
+
+        return null;
+    }
+
+    private GameOutput PressElevatorButton(string noun)
+    {
+        var room = _world.GetRoom(_state.CurrentRoomId);
+
+        // Only works if you're actually in the elevator
+        if (room.Id != 1)
+            return new GameOutput("You press at the air. The air remains unimpressed.", true, "NO_PANEL");
+
+        // FIELD button
+        if (noun is "field" or "f" or "1")
+        {
+            // Do NOT Go("field") unless field is a real exit you want to allow by movement.
+            // Better: teleport / scripted movement.
+            return ForceMoveTo(3);
+        }
+
+        // SSB button
+        if (noun is "ssb" or "subbasement" or "sub basement" or "sb" or "2")
+        {
+            if (!_state.HasFlag("elevator_ssb_unlocked"))
+                return new GameOutput(
+                    "You press S.S.B.\n" +
+                    "Nothing happens.\n\n" +
+                    "The panel flashes: ACCESS DENIED.\n" +
+                    "Apparently even elevators have standards.\n\n" +
+                    "Maybe examine the panel. Or your life choices.",
+                    true,
+                    "LOCKED"
+                );
+
+            // Teleport. Not an exit.
+            return ForceMoveTo(4);
+        }
+
+        return new GameOutput("The button does nothing. Possibly because it isn't real.", true, "BAD_BUTTON");
+    }
+
+    private GameOutput ForceMoveTo(int roomId)
+    {
+        _state.MoveTo(roomId);
+        return Look();
+    }
+
+    private GameOutput PressItem(Item item)
+    {
+        return item.Id switch
+        {
+            10 => new GameOutput("You press the elevator panel. Try a button: FIELD or S.S.B.", true, "PANEL_HINT"),
+            _ => new GameOutput($"You press the {item.Name}.\nIt feels pressed.", true, "PRESSED")
+        };
     }
 
     private void ApplyBatteryDrain(string normalizedInput)
