@@ -37,8 +37,30 @@ namespace Dork.Engine.Model
         public bool HasShownClassPrompt => HasFlag(ShownClassPromptFlag);
         public void MarkShownClassPrompt() => SetFlag(ShownClassPromptFlag);
 
-        public int PhoneBattery { get; private set; } = 52; // small, tense
-        public bool PhonePluggedIn { get; private set; }
+        public bool HasPower { get; set; } = true;
+
+        public int PhoneBattery { get; set; } = 52; // small, tense
+        public bool PhonePluggedIn { get; set; }
+
+        // Phone message state
+        public int PhoneUnreadMessages { get; private set; } = 1;
+        public bool PhoneMessageRead => PhoneUnreadMessages <= 0;
+
+        // Keep it simple: one message for now
+        public string PhoneMessageText { get; private set; } =
+            "UNREAD: Something is leaking. Someone is lying. Welcome to your job.";
+
+        public void MarkPhoneMessageRead()
+        {
+            PhoneUnreadMessages = 0;
+        }
+
+        public void SetPhoneMessage(string messageText, int unreadMessages = 1)
+        {
+            PhoneMessageText = messageText ?? "";
+            PhoneUnreadMessages = Math.Max(0, unreadMessages);
+        }
+
 
         public void TurnPhoneLightOn() => SetFlag("light_on");
         public void TurnPhoneLightOff() => ClearFlag("light_on");

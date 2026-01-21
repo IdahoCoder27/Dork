@@ -29,6 +29,8 @@ builder.Services.AddScoped<ICommandHandler, ClassGateCommands>();
 builder.Services.AddScoped<ICommandHandler, MovementCommands>();
 builder.Services.AddScoped<ICommandHandler, InventoryCommands>();
 builder.Services.AddScoped<ICommandHandler, ExamineCommands>();
+builder.Services.AddScoped<ICommandHandler, HelpCommands>();
+builder.Services.AddScoped<ICommandHandler, FallbackCommands>();
 builder.Services.AddScoped<ICommandHandler, PhoneCommands>();
 builder.Services.AddScoped<ICommandHandler, SecurityCommands>();
 
