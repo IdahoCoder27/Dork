@@ -18,6 +18,7 @@ namespace Dork.Engine.Model
         Talkable = 1 << 7, // yes. DORK.
         Container = 1 << 8,
         RequiresHeld = 1 << 9,
+        Hideable = 1 << 10,
 
         // Optional future-proofing if you want to be explicit:
         // Device = 1 << 9,

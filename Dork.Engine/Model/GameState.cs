@@ -43,6 +43,14 @@ namespace Dork.Engine.Model
         public void TurnPhoneLightOn() => SetFlag("light_on");
         public void TurnPhoneLightOff() => ClearFlag("light_on");
         public bool PhoneLightOn => HasFlag("light_on");
+        public bool IsHidden => HasFlag("player_hidden");
+        public void SetHidden(bool hidden)
+        {
+            if (hidden) SetFlag("player_hidden");
+            else ClearFlag("player_hidden");
+        }
+
+        public bool HasShownIdRecently => GetCounter("id_grace") > 0;
 
         /// <summary>
         /// This Falg is to determine intent

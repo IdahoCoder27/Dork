@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace Dork.Engine.Game
 {
-        public sealed record GameOutput(
-        string Text,
-        bool IsError = false,
-        string? ErrorCode = null
-    );
+    public enum OutputKind { Narration, Prompt, Error }
+
+    public sealed record GameOutput(string Text, OutputKind Kind = OutputKind.Narration, string? Code = null);
+
 }

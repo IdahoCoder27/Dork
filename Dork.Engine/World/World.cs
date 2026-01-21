@@ -11,11 +11,13 @@ public sealed class World
 {
     public IReadOnlyDictionary<int, Room> Rooms { get; }
     public IReadOnlyDictionary<int, Item> Items { get; }
+    public IReadOnlyList<Guard> Guards { get; }
 
-    public World(IReadOnlyDictionary<int, Room> rooms, IReadOnlyDictionary<int, Item> items)
+    public World(IReadOnlyDictionary<int, Room> rooms, IReadOnlyDictionary<int, Item> items, IReadOnlyList<Guard>? guards)
     {
         Rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
         Items = items ?? throw new ArgumentNullException(nameof(items));
+        Guards = guards ?? Array.Empty<Guard>();
 
         if (Rooms.Count == 0) throw new ArgumentException("World must contain at least one room.", nameof(rooms));
 
@@ -43,6 +45,28 @@ public sealed class World
                     throw new InvalidOperationException($"Room {r.Id} references missing item {itemId}.");
             }
         }
+    }
+
+    public void AdvanceGuards(GameState state)
+    {
+        foreach (var guard in Guards)
+        {
+            if (guard.State != GuardState.Patrol)
+                continue;
+
+            guard.RouteIndex = (guard.RouteIndex + 1) % guard.Route.Count;
+            guard.CurrentRoomId = guard.Route[guard.RouteIndex];
+        }
+
+    }
+
+    public Guard? DetectPlayer(GameState state)
+        => Guards.FirstOrDefault(g => g.CurrentRoomId == state.CurrentRoomId);
+
+    public bool AreAdjacent(int a, int b)
+    {
+        var ra = GetRoom(a);
+        return ra.Exits.Values.Any(e => e.ToRoomId == b);
     }
 
     public Room GetRoom(int roomId)

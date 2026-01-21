@@ -101,19 +101,19 @@
 
         var result = Game.Execute(cmd);
 
-        if (result.ErrorCode == "DARK")
+        if (result.Code == "DARK")
         {
             await DarkRoomGag();
             return;
         }
 
-        if (result.ErrorCode == "NO_LIGHT_SOURCE")
+        if (result.Code == "NO_LIGHT_SOURCE")
         {
-            AppendSystem("No phone. No flashlight. No hope. Maybe try picking up the obvious object next time.", isError: true);
+            AppendSystem("No phone. No flashlight. No hope. Maybe try picking up the obvious object next time.", OutputKind.Error);
             return;
         }
 
-        if (result.ErrorCode == "UNPARSEABLE")
+        if (result.Code == "UNPARSEABLE")
         {
             try
             {
@@ -126,7 +126,7 @@
         }
         else
         {
-            AppendSystem(result.Text, isError: result.IsError);
+            AppendSystem(result.Text, kind: result.Kind);
         }
     }
 
@@ -143,7 +143,7 @@
 
         await AppendSystemAsync(
             "What do you think this is? A text-based game from the 1980's? Turn on your light, dumbass.",
-            isError: true);
+            OutputKind.Error);
     }
 
 
@@ -159,7 +159,7 @@
         AppendSystem("Evaluating response from system...");
         await Task.Delay(350, token);
 
-        AppendSystem("Yeah, just no.", isError: true);
+        AppendSystem("Yeah, just no.", OutputKind.Error);
     }
 
     private void AppendUser(string text)
@@ -168,9 +168,16 @@
         _scrollPending = true;
     }
 
-    private void AppendSystem(string text, bool isError = false)
+    private void AppendSystem(string text, OutputKind kind = OutputKind.Narration)
     {
-        _history.Add(new Line(HtmlEncode(text).Replace("\n", "<br />"), isError ? "dork-line dork-error" : "dork-line dork-system"));
+        var css = kind switch
+        {
+            OutputKind.Error => "dork-line dork-error",
+            OutputKind.Prompt => "dork-line dork-system",
+            _ => "dork-line dork-narration"
+        };
+
+        _history.Add(new Line(HtmlEncode(text).Replace("\n", "<br />"), css));
         _scrollPending = true;
     }
 
@@ -188,9 +195,9 @@
         }
     }
 
-    private async Task AppendSystemAsync(string text, bool isError = false)
+    private async Task AppendSystemAsync(string text, OutputKind kind = OutputKind.Prompt)
     {
-        AppendSystem(text, isError);
+        AppendSystem(text, kind);
         await InvokeAsync(StateHasChanged);
     }
 }

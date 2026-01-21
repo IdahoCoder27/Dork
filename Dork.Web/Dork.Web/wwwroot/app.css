@@ -71,6 +71,7 @@ h1:focus {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 14px;
     line-height: 1.4;
+    color: white;
 }
 
 .dork-line {
@@ -88,6 +89,14 @@ h1:focus {
 
 .dork-error {
     color: #ff8a8a;
+}
+
+.dork-narration {
+    color: white;
+}
+
+.dork-output .dork-line.dork-narration {
+    color: white;
 }
 
 .dork-inputrow {

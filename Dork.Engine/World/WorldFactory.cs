@@ -153,7 +153,7 @@ public static class WorldFactory
                     ["down"] = new Exit { ToRoomId = 6 },
                     ["out"] = new Exit { ToRoomId = 6 },
                     // Floor 2 later:
-                    // ["up"] = new Exit { ToRoomId = 20 }
+                    ["up"] = new Exit { ToRoomId = 24 }
                 }
             },
 
@@ -190,6 +190,139 @@ public static class WorldFactory
                     ["lobby"] = new Exit { ToRoomId = 5 },
                 },
                 ItemIds = new HashSet<int> { 12 } // reuse reinforced door description for now
+            },
+
+            [20] = new Room
+            {
+                Id = 20,
+                Title = "Floor 2 Lobby",
+                Description =
+                    "The second-floor lobby is the same shape as downstairs, but it feels different.\n" +
+                    "Less public. More procedural.\n\n" +
+                    "The lighting is steady and bright enough to make bad decisions look intentional.\n" +
+                    "A few doors line the perimeter with numbered labels that assume you know what they mean.\n\n" +
+                    "A trash can sits in the open like an accusation.",
+                IsDark = false,
+                Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
+                {
+                    // back to stairwell door
+                    ["up"] = new Exit { ToRoomId = 24 },
+                    ["stairwell"] = new Exit { ToRoomId = 24 },
+                    ["back"] = new Exit { ToRoomId = 24 },
+
+                    // corridors
+                    ["west"] = new Exit { ToRoomId = 21 },
+                    ["east"] = new Exit { ToRoomId = 22 },
+
+                    // restricted room (placeholder gate)
+                    ["operations"] = new Exit
+                    {
+                        ToRoomId = 23,
+                        AllowedClasses = new HashSet<PlayerClass>
+                        {
+                            PlayerClass.Janitor,
+                            PlayerClass.MiddleManager
+                        },
+                        LockedMessage =
+                            "You approach the Operations Support door.\n\n" +
+                            "A small sign reads: AUTHORIZED STAFF ONLY.\n" +
+                            "The lock reads: ALSO YOU.\n\n" +
+                            "Access denied."
+                    },
+                    ["ops"] = new Exit
+                    {
+                        ToRoomId = 23,
+                        AllowedClasses = new HashSet<PlayerClass>
+                        {
+                            PlayerClass.Janitor,
+                            PlayerClass.MiddleManager
+                        },
+                        LockedMessage =
+                            "Operations Support remains inaccessible.\n" +
+                            "It does this professionally."
+                    }
+                },
+                ItemIds = new HashSet<int> { 16 } // trash can
+            },
+
+            [21] = new Room
+            {
+                Id = 21,
+                Title = "Floor 2 West Corridor",
+                Description =
+                    "A short corridor with two reinforced doors.\n\n" +
+                    "Their labels are faded, their locks are not.\n" +
+                    "The little status lights glow steadily, as if the building is quietly pleased with itself.",
+                IsDark = false,
+                Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["back"] = new Exit { ToRoomId = 20 },
+                    ["lobby"] = new Exit { ToRoomId = 20 },
+                    ["east"] = new Exit { ToRoomId = 20 }
+                },
+                ItemIds = new HashSet<int> { 12 } // reuse Reinforced Door item for now
+            },
+
+            [22] = new Room
+            {
+                Id = 22,
+                Title = "Floor 2 East Corridor",
+                Description =
+                    "A longer corridor with multiple secured entrances.\n\n" +
+                    "This side feels more occupied. Not by people.\n" +
+                    "By policy.\n\n" +
+                    "Somewhere behind these doors, someone is paid to say \"no\" for a living.",
+                IsDark = false,
+                Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["back"] = new Exit { ToRoomId = 20 },
+                    ["lobby"] = new Exit { ToRoomId = 20 },
+                    ["west"] = new Exit { ToRoomId = 20 }
+                },
+                ItemIds = new HashSet<int> { 12 } // reuse Reinforced Door item
+            },
+
+            [23] = new Room
+            {
+                Id = 23,
+                Title = "Operations Support",
+                Description =
+                    "The room smells like toner, overheated plastic, and quiet resentment.\n\n" +
+                    "A row of terminals hums along the wall. A whiteboard is filled with acronyms.\n" +
+                    "None of them explain anything.\n\n" +
+                    "This is where problems go to become tickets.\n" +
+                    "And where tickets go to be ignored.",
+                IsDark = false,
+                HasPower = true,
+                GateRuleId = "OPS_SUPPORT_RESTRICTED",
+                Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["out"] = new Exit { ToRoomId = 20 },
+                    ["lobby"] = new Exit { ToRoomId = 20 },
+                    ["back"] = new Exit { ToRoomId = 20 },
+                },
+                ItemIds = new HashSet<int> { 17 }
+            },
+
+            [24] = new Room
+            {
+                Id = 24,
+                Title = "Floor 2 Stairwell Door",
+                Description =
+                    "A heavy fire-rated door marked FLOOR 2.\n\n" +
+                    "A small sign reads:\n" +
+                    "STAIR ACCESS PER FIRE CODE. DO NOT BLOCK.\n\n" +
+                    "The handle is worn from use.\n" +
+                    "Not by you. By people who know what they're doing.",
+                IsDark = false,
+                Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["out"] = new Exit { ToRoomId = 20 },
+                    ["down"] = new Exit { ToRoomId = 7 },
+                    ["in"] = new Exit { ToRoomId = 7 }, // convenience
+                    ["stairwell"] = new Exit { ToRoomId = 7 }
+                },
+                ItemIds = new HashSet<int> { 15 } // reuse Stairwell Door item
             },
         };
 
@@ -296,6 +429,34 @@ public static class WorldFactory
                 aliases: new[] { "stairwell door", "fire access door", "fire door" }
             ),
 
+            [16] = new Item(
+                id: 16,
+                name: "Trash Can",
+                description:
+                    "A standard office trash can.\n\n" +
+                    "It is empty. Suspiciously empty.\n" +
+                    "Like it’s waiting for you to contribute something embarrassing.",
+                weight: 0,
+                isPortable: false,
+                capabilities: ItemCapability.None,
+                aliases: new[] { "trash", "trashcan", "can", "bin" }
+            ),
+
+                        [17] = new Item(
+                id: 17,
+                name: "Operations Console",
+                description:
+                    "A workstation with multiple monitors and an authentication prompt.\n\n" +
+                    "The screen reads:\n" +
+                    "PLEASE BADGE IN\n\n" +
+                    "A little help text underneath says:\n" +
+                    "DO NOT CALL I.T. AFTER HOURS.",
+                weight: 0,
+                isPortable: false,
+                capabilities: ItemCapability.None,
+                aliases: new[] { "console", "workstation", "terminal", "ops console", "computer" }
+            ),
+
             [99] = new Item(
                 id: 99,
                 name: "Phone charger",
@@ -307,6 +468,21 @@ public static class WorldFactory
             )
         };
 
-        return new World(rooms, items);
+        var guards = new List<Guard>
+{
+            new Guard
+            {
+                Id = 1,
+                Name = "Facility Guard",
+                CurrentRoomId = 20, // Floor 2 Lobby
+                Route = new List<int>
+                {
+                    20, 21, 20, 22, 20, 24, 20, 23, 20
+                },
+                RouteIndex = 0
+            }
+        };
+
+        return new World(rooms, items, guards);
     }
 }
