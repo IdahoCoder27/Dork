@@ -25,7 +25,44 @@ namespace Dork.Engine.Game
             if (!exit.IsAllowed(state))
                 return new GameOutput(exit.LockedMessage ?? "Access denied.", OutputKind.Error, "EXIT_BLOCKED");
 
-            state.MoveTo(exit.ToRoomId);
+            switch (exit.Type)
+            {
+                case ExitType.Normal:
+                    state.MoveTo(exit.ToRoomId);
+                    break;
+
+                case ExitType.Elevator:
+                    state.MoveTo(exit.ToRoomId);
+
+                    // moving breaks hiding
+                    state.ClearFlag("player_hidden");
+
+                    ctx.Turn.PlayerMoved = true;
+                    if (wasDarkAndUnlit)
+                        ctx.Turn.MadeNoise = true;
+
+                    return new GameOutput(
+                        "The doors slide shut.\n" +
+                        "Something engages behind the panel with a quiet, expensive-sounding click.\n\n" +
+                        "The ‘S.S.B.’ label glows faintly, then goes dark.\n\n" +
+                        RoomDescriber.Look(ctx).Text,
+                        OutputKind.Narration,
+                        "ELEVATOR_MOVE"
+                    );
+
+                case ExitType.Game:
+                    // You likely already have a flag or signal for this.
+                    // If not, add one (e.g. ctx.State.RequestExit = true)
+                    ctx.State.SetFlag("exit_game");
+                    return new GameOutput(
+                        "The game ends. Reality resumes.",
+                        OutputKind.System,
+                        "GAME_EXIT"
+                    );
+
+                default:
+                    throw new InvalidOperationException($"Unhandled ExitType: {exit.Type}");
+            }
 
             // moving breaks hiding
             state.ClearFlag("player_hidden");

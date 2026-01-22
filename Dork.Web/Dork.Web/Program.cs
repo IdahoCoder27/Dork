@@ -33,6 +33,7 @@ builder.Services.AddScoped<ICommandHandler, HelpCommands>();
 builder.Services.AddScoped<ICommandHandler, FallbackCommands>();
 builder.Services.AddScoped<ICommandHandler, PhoneCommands>();
 builder.Services.AddScoped<ICommandHandler, SecurityCommands>();
+builder.Services.AddScoped<ICommandHandler, PushCommands>();
 
 // Router
 builder.Services.AddScoped<ICommandRouter>(sp =>

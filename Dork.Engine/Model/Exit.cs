@@ -13,6 +13,7 @@ namespace Dork.Engine.Model
         // Gatekeeping
         public string? RequiredFlag { get; init; }
         public string? LockedMessage { get; init; }
+        public ExitType Type { get; init; } = ExitType.Normal;
 
         // Class gate
         public HashSet<PlayerClass>? AllowedClasses { get; init; }
@@ -30,5 +31,12 @@ namespace Dork.Engine.Model
 
             return RequiredFlag is null || state.HasFlag(RequiredFlag);
         }
+    }
+
+    public enum ExitType
+    {
+        Normal,
+        Elevator,
+        Game
     }
 }

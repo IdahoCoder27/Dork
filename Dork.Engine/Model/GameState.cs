@@ -48,7 +48,7 @@ namespace Dork.Engine.Model
 
         // Keep it simple: one message for now
         public string PhoneMessageText { get; private set; } =
-            "UNREAD: Something is leaking. Someone is lying. Welcome to your job.";
+            "From: Ops Scheduling\n\nSubject: Access Approved\n\nHey —\n\nYour access was approved last minute.\n\nS.S.B.voice code is required.\nSay it clearly.\n\nDon't improvise.";
 
         public void MarkPhoneMessageRead()
         {

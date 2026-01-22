@@ -111,61 +111,6 @@ namespace Dork.Engine.Model
         public bool IsSingleUse { get; init; } = false; // optional, if you want burn-after-reading notes
     }
 
-    /// <summary>
-    /// Phone / messaging behavior. Attach to an Item (e.g., your Cell phone).
-    /// </summary>
-    public sealed class PhoneSpec
-    {
-        public List<Message> Messages { get; init; } = new();
-
-        public int UnreadCount => Messages.Count(m => m.State != MessageState.Read);
-        public int UnseenCount => Messages.Count(m => m.State == MessageState.Unseen);
-
-        public IEnumerable<Message> UnreadMessages() => Messages.Where(m => m.State != MessageState.Read);
-        public IEnumerable<Message> UnseenMessages() => Messages.Where(m => m.State == MessageState.Unseen);
-
-        /// <summary>
-        /// When the player checks/inspects the phone, you probably want to reveal that messages exist.
-        /// This marks all Unseen messages as Seen (but not Read).
-        /// </summary>
-        public int MarkAllSeen(DateTimeOffset? now = null)
-        {
-            int changed = 0;
-            foreach (var m in Messages.Where(m => m.State == MessageState.Unseen))
-            {
-                m.MarkSeen(now);
-                changed++;
-            }
-            return changed;
-        }
-
-        /// <summary>
-        /// Reads a message by id. Returns null if not found.
-        /// </summary>
-        public Message? ReadById(string id, DateTimeOffset? now = null)
-        {
-            var msg = Messages.FirstOrDefault(m => string.Equals(m.Id, id, StringComparison.OrdinalIgnoreCase));
-            if (msg == null) return null;
-            msg.MarkRead(now);
-            return msg;
-        }
-
-        /// <summary>
-        /// Reads the "next" unread message (prefers Seen over Unseen).
-        /// Returns null if nothing unread.
-        /// </summary>
-        public Message? ReadNext(DateTimeOffset? now = null)
-        {
-            var msg =
-                Messages.FirstOrDefault(m => m.State == MessageState.Seen) ??
-                Messages.FirstOrDefault(m => m.State == MessageState.Unseen);
-
-            if (msg == null) return null;
-            msg.MarkRead(now);
-            return msg;
-        }
-    }
-
     public sealed class Item
     {
         public int Id { get; init; }
@@ -194,8 +139,6 @@ namespace Dork.Engine.Model
         public bool IsStealable { get; init; } = true;
         public string? OwnerId { get; init; } // actor id, faction id, etc.
 
-        public bool IsPortable => (Capabilities & ItemCapability.Takeable) != 0;
-
         // Optional gating: you can require an item or tag to interact.
         public int? RequiredToolItemId { get; init; }          // e.g. needs crowbar
         public string? RequiredToolTag { get; init; }          // e.g. needs "key"
@@ -210,9 +153,6 @@ namespace Dork.Engine.Model
 
         // New: readable content (notes, plaques, manuals)
         public ReadableSpec? Readable { get; init; }
-
-        // New: phone/message support (only meaningful for items like "Cell phone")
-        public PhoneSpec? Phone { get; init; }
 
         public Item(
             int id,
@@ -261,13 +201,12 @@ namespace Dork.Engine.Model
             if (!Has(ItemCapability.Container) && Container is not null)
                 throw new InvalidOperationException($"Item {Id}: Container spec provided but item is not marked Container.");
 
-            if (Has(ItemCapability.Readable) && Readable is null && Phone is null)
-                throw new InvalidOperationException($"Item {Id}: Marked Readable but has neither Readable text nor Phone messages.");
+            if (Has(ItemCapability.Readable) && Readable is null)
+                throw new InvalidOperationException($"Item {Id}: Marked Readable but Readable spec is null.");
 
-            // Phone implies readable-like interactions, but you can decide whether it must set Readable capability.
-            // If you want strictness, uncomment:
-            // if (Phone is not null && !Has(ItemCapability.Readable))
-            //     throw new InvalidOperationException($"Item {Id}: Phone spec provided but item is not marked Readable.");
+            if (!Has(ItemCapability.Readable) && Readable is not null)
+                throw new InvalidOperationException($"Item {Id}: Readable spec provided but item is not marked Readable.");
+
 
             // Validate container spec
             Container?.Validate(Id);

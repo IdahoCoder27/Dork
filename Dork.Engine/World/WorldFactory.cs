@@ -40,7 +40,8 @@ public static class WorldFactory
                             "You try to go to S.S.B.\n" +
                             "The elevator refuses.\n\n" +
                             "ACCESS DENIED.\n" +
-                            "Try voice authorization. Or literacy."
+                            "Try voice authorization. Or literacy.",
+                        Type = ExitType.Elevator
                     }
                 },
                 ItemIds = new HashSet<int> { 1, 10, 11 }
@@ -334,24 +335,9 @@ public static class WorldFactory
                 description: "An Android-powered cellular device. It has strong opinions about battery life.",
                 weight: 1,
                 isPortable: true,
-                capabilities: ItemCapability.Takeable | ItemCapability.Breakable | ItemCapability.Readable,
+                capabilities: ItemCapability.Takeable | ItemCapability.Breakable,
                 aliases: new[] { "phone", "cell", "android" }
-            )
-            {
-                Phone = new PhoneSpec
-                {
-                    Messages = new List<Message>
-                    {
-                        new Message
-                        {
-                            From = "Ops Scheduling",
-                            Subject = "Access Approved",
-                            Body = "Hey —\n\nYour access was approved last minute.\nS.S.B. voice code is LASAGNA.\n\nDon’t ask.\nJust say it clearly.",
-                            Tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "auth", "ssb", "security" }
-                        }
-                    }
-                }
-            },
+            ),
 
             [10] = new Item(
                 id: 10,

@@ -60,7 +60,7 @@ namespace Dork.Engine.Commands
             if (item == null)
                 return new GameOutput("Not seeing it. Maybe it’s hiding from you.", OutputKind.Prompt, "NO_ITEM");
 
-            if (!item.IsPortable)
+            if (!item.Capabilities.HasFlag(Model.ItemCapability.Takeable))
                 return new GameOutput("You can’t take that.", OutputKind.Prompt, "CANT_TAKE");
 
             room.ItemIds.Remove(item.Id);

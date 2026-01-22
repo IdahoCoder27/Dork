@@ -34,11 +34,6 @@ namespace Dork.Engine.Commands
                 ? $"It’s {item.Name}. It exists. Congratulations."
                 : item.Description;
 
-            // Default: just the description.
-            // Phone special-case: only show battery + unread notification if it's in hand (inventory).
-            if (item.Phone is null)
-                return new GameOutput(baseText, OutputKind.Narration);
-
             var inHand = ctx.State.HasItem(item.Id); // "in my hand" == in inventory in your model
             if (!inHand)
                 return new GameOutput(baseText, OutputKind.Narration);
