@@ -24,7 +24,7 @@ namespace Dork.Engine.Game
             sb.AppendLine(room.Description);
 
             // Items in room (uses ItemIds)
-            var itemIds = room.ItemIds?.ToList() ?? new List<int>();
+            var itemIds = room.ItemIds?.Where(id => id < 999).ToList() ?? new List<int>();
             if (itemIds.Count > 0)
             {
                 sb.AppendLine();

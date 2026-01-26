@@ -24,6 +24,7 @@ public static class WorldFactory
                 Description =
                     "You step into the elevator. The doors close behind you with the confidence of a system that has never met you before.\n" +
                     "You are in a small elevator. A small plaque lies above an old panel. The panel waits for you to make a decision.",
+                ListenText = "The ventilation hums. The panel’s grille breathes stale air. Somewhere, old relays click when you aren’t looking.",
                 Exits = new Dictionary<string, Exit>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["out"] = new Exit { ToRoomId = 2 },
@@ -44,7 +45,7 @@ public static class WorldFactory
                         Type = ExitType.Elevator
                     }
                 },
-                ItemIds = new HashSet<int> { 1, 10, 11 }
+                ItemIds = new HashSet<int> { 1, 10, 11, 999 }
             },
 
             [2] = new Room
@@ -451,6 +452,27 @@ public static class WorldFactory
                 isPortable: true,
                 capabilities: ItemCapability.Takeable | ItemCapability.Breakable,
                 aliases: new[] { "charger" }
+            ),
+            [999] = new Item
+            (
+                id: 999,
+                name: "Elevator",
+                description: "It’s an elevator. It does not respect your ambitions.",
+                weight: 1000000,
+                isPortable: false,
+                capabilities: ItemCapability.Usable,
+                aliases: new[] { "elevator", "lift" }
+            ),
+            [1001] = new Item
+            (
+                id: 1001,
+                name: "Filing Cabinet",
+                description: "A dented metal filing cabinet bolted to the floor. "
+                                + "One drawer is labeled \"ACTIVE CASE FILE\" in faded ink.",
+                weight: 1000000,
+                isPortable: false,
+                capabilities: ItemCapability.Usable | ItemCapability.SavePoint,
+                aliases: new[] { "cabinet", "filing cabinet", "file cabinet", "drawer", "drawers" }
             )
         };
 

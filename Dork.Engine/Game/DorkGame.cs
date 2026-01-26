@@ -10,25 +10,34 @@ namespace Dork.Engine.Game;
 
 public sealed class DorkGame
 {
-    private readonly World.World _world;
-    private readonly GameState _state;
+    private World.World _world;
+    private GameState _state;
     private readonly GameOptions _options;
     private readonly ICommandRouter _router;
     private readonly TurnPipeline _turnPipeline;
     private readonly Random _rng = new();
     private readonly MovementService _movement = new();
+    private readonly ISaveService _saveService;
 
-    public DorkGame(World.World world,
-                    GameState state,
-                    GameOptions options,
-                    ICommandRouter router,
-                    TurnPipeline turnPipeline)
+    private readonly Func<World.World> _worldFactory;
+    private readonly Func<GameState> _stateFactory;
+
+    public DorkGame(
+        Func<World.World> worldFactory,
+        Func<GameState> stateFactory,
+        GameOptions options,
+        ICommandRouter router,
+        TurnPipeline turnPipeline,
+        ISaveService saveService)
     {
-        _world = world;
-        _state = state;
-        _options = options;
-        _router = router;
-        _turnPipeline = turnPipeline;
+        _worldFactory = worldFactory ?? throw new ArgumentNullException(nameof(worldFactory));
+        _stateFactory = stateFactory ?? throw new ArgumentNullException(nameof(stateFactory));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _router = router ?? throw new ArgumentNullException(nameof(router));
+        _turnPipeline = turnPipeline ?? throw new ArgumentNullException(nameof(turnPipeline));
+        _saveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
+        _world = _worldFactory() ?? throw new InvalidOperationException("World factory returned null.");
+        _state = _stateFactory() ?? throw new InvalidOperationException("GameState factory returned null.");
     }
 
     public GameOutput Execute(string input)
@@ -36,7 +45,7 @@ public sealed class DorkGame
         var raw = input ?? "";
         var normalized = InputNormalizer.Normalize(raw);
 
-        var ctx = new GameContext(_world, _state, _options, _rng, _movement);
+        var ctx = new GameContext(_world, _state, _options, _rng, _movement, _saveService);
         ctx.Turn.RawInput = raw;
         ctx.Turn.NormalizedInput = normalized;
 
@@ -45,6 +54,21 @@ public sealed class DorkGame
 
         // 3) Apply systems
         result = _turnPipeline.Run(ctx, result);
+
+        if (_state.NewGameRequested)
+        {
+            _world = _worldFactory() ?? throw new InvalidOperationException("World factory returned null.");
+            _state = _stateFactory() ?? throw new InvalidOperationException("GameState factory returned null.");
+
+            _state.NewGameRequested = false; // <- clear it
+
+            var newCtx = new GameContext(_world, _state, _options, _rng, _movement, _saveService);
+            newCtx.Turn.RawInput = "look";
+            newCtx.Turn.NormalizedInput = "look";
+
+            var look = _router.Route("look", newCtx);
+            return result.Append("\n").Append(look.Text);
+        }
 
         return result;
     }

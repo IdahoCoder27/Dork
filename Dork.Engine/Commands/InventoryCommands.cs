@@ -14,7 +14,8 @@ namespace Dork.Engine.Commands
         public bool CanHandle(string input, GameContext ctx)
             => input is "inventory" or "inv" or "i"
                || input.StartsWith("take ") || input.StartsWith("get ")
-               || input.StartsWith("drop ") || input.StartsWith("leave ");
+               || input.StartsWith("drop ") || input.StartsWith("leave ")
+               || input.StartsWith("pick up ") || input.StartsWith("grab ");
 
         public GameOutput Handle(string input, GameContext ctx)
         {
@@ -26,6 +27,12 @@ namespace Dork.Engine.Commands
 
             if (input.StartsWith("get "))
                 return Take(ctx, input["get ".Length..].Trim());
+
+            if (input.StartsWith("pick up "))
+                return Take(ctx, input["pick up ".Length..].Trim());
+
+            if (input.StartsWith("grab "))
+                return Take(ctx, input["grab ".Length..].Trim());
 
             if (input.StartsWith("drop "))
                 return Drop(ctx, input["drop ".Length..].Trim());
@@ -61,7 +68,7 @@ namespace Dork.Engine.Commands
                 return new GameOutput("Not seeing it. Maybe it’s hiding from you.", OutputKind.Prompt, "NO_ITEM");
 
             if (!item.Capabilities.HasFlag(Model.ItemCapability.Takeable))
-                return new GameOutput("You can’t take that.", OutputKind.Prompt, "CANT_TAKE");
+                return new GameOutput(RandomSnark(), OutputKind.Prompt, "CANT_TAKE");
 
             room.ItemIds.Remove(item.Id);
             ctx.State.Inventory.Add(item.Id);
@@ -83,6 +90,23 @@ namespace Dork.Engine.Commands
             ctx.World.GetRoom(ctx.State.CurrentRoomId).ItemIds.Add(item.Id);
 
             return new GameOutput($"Dropped: {item.Name}.", OutputKind.Narration);
+        }
+
+        private static readonly string[] NotPortableSnark =
+        {
+            "You try your best. But your best just isn’t good enough.",
+            "You give it a tug. Reality does not budge.",
+            "That seems ambitious. Physics disagrees.",
+            "You consider it carefully, then reconsider your life choices.",
+            "It stays exactly where it is, unimpressed.",
+            "You briefly imagine success. The moment passes.",
+            "Nice try. No.",
+            "You would need tools. And permissions. And probably therapy."
+        };
+
+        private static string RandomSnark()
+        {
+            return NotPortableSnark[Random.Shared.Next(NotPortableSnark.Length)];
         }
     }
 }

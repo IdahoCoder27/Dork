@@ -15,6 +15,11 @@ namespace Dork.Engine.Model
         public bool HasPower { get; init; }
 
         /// <summary>
+        /// Default response when a player listens
+        /// </summary>
+        public string ListenText { get; set; } = "Test";
+
+        /// <summary>
         /// Direction -> destination room id (e.g. "north" => 2)
         /// </summary>
         public Dictionary<string, Exit> Exits { get; init; } = new(StringComparer.OrdinalIgnoreCase);

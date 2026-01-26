@@ -11,14 +11,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // World + state
-builder.Services.AddScoped(sp => WorldFactory.CreateDemoWorld());
-builder.Services.AddScoped(sp => new GameState(startingRoomId: 1));
+builder.Services.AddScoped<Func<World>>(_ => () => WorldFactory.CreateDemoWorld());
+builder.Services.AddScoped<Func<GameState>>(_ => () => new GameState(startingRoomId: 1));
 
 // Options
-builder.Services.AddScoped(sp => new GameOptions
-{
-    ShowExits = true
-});
+builder.Services.AddScoped<GameOptions>(_ => new GameOptions { ShowExits = true });
 
 // Core services
 builder.Services.AddScoped<MovementService>();
@@ -34,6 +31,15 @@ builder.Services.AddScoped<ICommandHandler, FallbackCommands>();
 builder.Services.AddScoped<ICommandHandler, PhoneCommands>();
 builder.Services.AddScoped<ICommandHandler, SecurityCommands>();
 builder.Services.AddScoped<ICommandHandler, PushCommands>();
+builder.Services.AddScoped<ICommandHandler, ListenCommands>();
+//builder.Services.AddScoped<ICommandHandler, WaitCommands>();
+//builder.Services.AddScoped<ICommandHandler, PokeCommands>();
+//builder.Services.AddScoped<ICommandHandler, EatCommands>();
+//builder.Services.AddScoped<ICommandHandler, HideCommands>();
+builder.Services.AddScoped<ICommandHandler, SaveCommands>();
+builder.Services.AddScoped<ICommandHandler, NewGameCommands>();
+
+builder.Services.AddSingleton<ISaveService>(sp => new FileSaveService("save.json"));
 
 // Router
 builder.Services.AddScoped<ICommandRouter>(sp =>
@@ -58,13 +64,21 @@ builder.Services.AddScoped(sp =>
 // Game
 builder.Services.AddScoped<DorkGame>(sp =>
 {
-    var world = sp.GetRequiredService<World>();
-    var state = sp.GetRequiredService<GameState>();
+    var worldFactory = sp.GetRequiredService<Func<World>>();
+    var stateFactory = sp.GetRequiredService<Func<GameState>>();
     var options = sp.GetRequiredService<GameOptions>();
     var router = sp.GetRequiredService<ICommandRouter>();
     var pipeline = sp.GetRequiredService<TurnPipeline>();
+    var savegame = sp.GetRequiredService<ISaveService>();
 
-    return new DorkGame(world, state, options, router, pipeline);
+    return new DorkGame(
+                        worldFactory,
+                        stateFactory,
+                        options,
+                        router,
+                        pipeline,
+                        savegame
+                        );
 });
 
 var app = builder.Build();

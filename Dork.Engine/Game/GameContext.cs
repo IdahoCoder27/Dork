@@ -14,18 +14,25 @@ namespace Dork.Engine.Game
         public GameState State { get; }
         public GameOptions Options { get; }
         public Random Rng { get; }
-        public IMovementService Movement { get; }
+        public MovementService Movement { get; }
+        public ISaveService SaveService { get; }
 
-        // Per-turn scratchpad (NOT persisted)
         public TurnFrame Turn { get; } = new();
 
-        public GameContext(World.World world, GameState state, GameOptions options, Random rng, MovementService movement)
+        public GameContext(
+            World.World world,
+            GameState state,
+            GameOptions options,
+            Random rng,
+            MovementService movement,
+            ISaveService saveService)
         {
-            World = world;
-            State = state;
-            Options = options;
-            Rng = rng;
-            Movement = movement;
+            World = world ?? throw new ArgumentNullException(nameof(world));
+            State = state ?? throw new ArgumentNullException(nameof(state));
+            Options = options ?? throw new ArgumentNullException(nameof(options));
+            Rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            Movement = movement ?? throw new ArgumentNullException(nameof(movement));
+            SaveService = saveService ?? throw new ArgumentNullException(nameof(saveService));
         }
     }
 

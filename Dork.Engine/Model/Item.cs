@@ -19,6 +19,7 @@ namespace Dork.Engine.Model
         Container = 1 << 8,
         RequiresHeld = 1 << 9,
         Hideable = 1 << 10,
+        SavePoint = 1 << 11,
 
         // Optional future-proofing if you want to be explicit:
         // Device = 1 << 9,

@@ -33,11 +33,18 @@ namespace Dork.Engine.Model
         /// </summary>
         public Dictionary<string, int> Counters { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        public bool NewGameRequested { get; set; }
+
         private const string ShownClassPromptFlag = "shown_class_prompt";
         public bool HasShownClassPrompt => HasFlag(ShownClassPromptFlag);
         public void MarkShownClassPrompt() => SetFlag(ShownClassPromptFlag);
 
         public bool HasPower { get; set; } = true;
+
+        public int TurnsUntilGuard { get; set; }
+
+        public bool IsGameOver { get; private set; }
+        public string? GameOverReason { get; private set; }
 
         public int PhoneBattery { get; set; } = 52; // small, tense
         public bool PhonePluggedIn { get; set; }

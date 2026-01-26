@@ -13,6 +13,17 @@ public sealed class World
     public IReadOnlyDictionary<int, Item> Items { get; }
     public IReadOnlyList<Guard> Guards { get; }
 
+    public IEnumerable<Item> GetItemsInRoom(int roomId)
+    {
+        if (!Rooms.TryGetValue(roomId, out var room))
+            return Enumerable.Empty<Item>();
+
+        // Assuming room has a list of item IDs in it
+        return room.ItemIds
+            .Where(id => Items.ContainsKey(id))
+            .Select(id => Items[id]);
+    }
+
     public World(IReadOnlyDictionary<int, Room> rooms, IReadOnlyDictionary<int, Item> items, IReadOnlyList<Guard>? guards)
     {
         Rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
